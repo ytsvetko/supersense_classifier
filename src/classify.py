@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 from __future__ import division
-from itertools import izip
+from itertools import izip_longest
 import sys
 import codecs
 import argparse
@@ -26,6 +26,8 @@ parser.add_argument("--test_predicted_labels_out")
 parser.add_argument("--golden_labels")
 parser.add_argument("--classifier", default="RandomForest")
 parser.add_argument("--num_cross_validation_folds", default=0, type=int)
+parser.add_argument("--write_posterior_probabilities", default=False, action='store_true')
+parser.add_argument("--write_class_confidence", default=False,  action='store_true')
 
 args = parser.parse_args()
 
@@ -73,8 +75,7 @@ class Classifier(object):
 
   def Predict(self, Xsparse):
     X = self.FromSparse(Xsparse)
-    #print self.classifier.predict_proba(X)
-    return self.classifier.predict(X)
+    return self.classifier.predict(X), self.classifier.predict_proba(X)
 
   def LoadCregFeatFile(self, feat_filename):
     Xsparse = []
@@ -97,23 +98,36 @@ class Classifier(object):
 
   def SaveCregFeat(self, instances, x_list, feat_filename):
     feat_file = codecs.open(feat_filename, "w", "utf-8")
-    for instance, x in izip(instances, x_list):
+    for instance, x in izip_longest(instances, x_list):
       features = {}
       for i, val in enumerate(x):
         features[self.features_enum.NumToStr(i)] = val
       features_str = json.dumps(features, sort_keys=True)
       feat_file.write("{}\t{}\n".format(instance, features_str))
 
-  def SaveCregLabels(self, instances, y_list, labels_filename):
+  def SaveCregLabels(self, instances, y_list, y_probabilities, write_class_confidence, labels_filename):
     labels_file = codecs.open(labels_filename, "w", "utf-8")
-    for instance, y in izip(instances, y_list):
+    y_prob_iter = [] if y_probabilities is None else y_probabilities
+    for instance, y, y_prob in izip_longest(instances, y_list, y_prob_iter):
       label = self.labels_enum.NumToStr(y)
-      labels_file.write("{}\t{}\n".format(instance, label))
+      if y_probabilities is None:
+        labels_file.write("{}\t{}\n".format(instance, label))
+      else:
+        prob_dict = {}
+        for i, prob in enumerate(y_prob):
+          prob_dict[self.labels_enum.NumToStr(i)] = prob
+        prob_str = json.dumps(prob_dict, sort_keys=True)
+        if not write_class_confidence:
+          labels_file.write("{}\t{}\t{}\n".format(instance, label, prob_str))
+        else:
+          first, second = sorted(prob_dict.itervalues(), reverse=True)[:2]
+          confidence = first - second
+          labels_file.write("{}\t{}\t{}\t{}\n".format(instance, label, confidence, prob_str))
 
   def CalcAccuracy(self, predicted_labels, golden_labels):
     correct = 0
     miss = 0
-    for p, g in izip(predicted_labels, golden_labels):
+    for p, g in izip_longest(predicted_labels, golden_labels):
       if p == g:
         correct += 1
       else:
@@ -122,7 +136,7 @@ class Classifier(object):
 
   def WriteConfusionMatrix(self, predicted_labels, golden_labels, out_file):
     confusion_matrix = Counter()
-    for predicted, golden in izip(predicted_labels, golden_labels):
+    for predicted, golden in izip_longest(predicted_labels, golden_labels):
       confusion_matrix[(self.labels_enum.NumToStr(predicted), self.labels_enum.NumToStr(golden))] += 1
 
     out_file.write("Confusion Matrix:\nCorrect\\Predicted\n")
@@ -161,10 +175,11 @@ def main():
   X, x_instances = classifier.LoadCregFeatFile(args.train_features)
   y, y_instances = classifier.LoadCregLabelsFile(args.train_labels)
   if x_instances != y_instances:
-    for i, (x, y) in enumerate(izip(x_instances, y_instances)):
+    for i, (x, y) in enumerate(izip_longest(x_instances, y_instances)):
       assert (x==y), (i+1, x, y)
 
   print "Num of labels:", len(classifier.labels_enum.labels)
+  print "Num training samples:", len(y)
   print "Num of features:", len(classifier.features_enum.labels)
 
   if args.priors == "balanced":
@@ -187,9 +202,13 @@ def main():
   classifier.Train(X, y, priors)
   print("Testing")
 
-  test_predicted_labels = classifier.Predict(X_test)
+  test_predicted_labels, test_predicted_probabilities = classifier.Predict(X_test)
   if args.test_predicted_labels_out:
-    classifier.SaveCregLabels(test_instances, test_predicted_labels, args.test_predicted_labels_out)
+    out_probabilities = test_predicted_probabilities
+    if not args.write_posterior_probabilities:
+      out_probabilities = None
+    classifier.SaveCregLabels(test_instances, test_predicted_labels,
+        out_probabilities, args.write_class_confidence, args.test_predicted_labels_out)
   if args.golden_labels:
     golden_labels, golden_instances = classifier.LoadCregLabelsFile(args.golden_labels)
     assert (golden_instances == test_instances)
