@@ -36,5 +36,5 @@ nosetests.xml
 
 # Non-code directories
 data/
-taxonomy/
+taxonomies/
 related_papers/
