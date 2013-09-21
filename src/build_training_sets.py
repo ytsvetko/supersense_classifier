@@ -26,9 +26,8 @@ def LoadVectors(embeddings_filename):
   feature_vectors = {}
   for line in open(embeddings_filename):
     tokens = line.strip().split()
-    word = tokens[0]
+    word = tokens[0].lower()
     features = tokens[1:]
-    word = word.strip()
     if not word.isalpha():
       continue
     features_dict = { "V_"+str(ind) : float(str_feat) for ind, str_feat in enumerate(features) }

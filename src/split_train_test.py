@@ -18,7 +18,7 @@ args = parser.parse_args()
 def LoadSeed(filename, vocab):
   result = collections.defaultdict(list)
   for line in open(filename):
-    tokens = line.strip().split("\t")
+    tokens = line.strip().lower().split("\t")
     if len(tokens) == 1:
       continue
     if len(tokens) == 2:

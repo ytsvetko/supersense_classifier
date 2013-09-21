@@ -8,7 +8,8 @@ OUT_DIR=./taxonomies/GermaNet
 
 CREG_BIN=/usr0/home/ytsvetko/tools/creg/dist/bin/creg
 
-EMBEDDINGS=data/vectors/huang/joined.txt
+#EMBEDDINGS=data/vectors/huang/joined.txt
+EMBEDDINGS=data/vectors/manaal/en-de-16.txt
 BROWN_CLUSTERS=data/brown/en-c600
 
 mkdir -p ${OUT_DIR}
@@ -35,7 +36,7 @@ src/build_training_sets.py --in_file ${OUT_DIR}/train_seed.txt \
 echo "Run multi-way classifier. " #Default - Random Forest with 300 trees
 src/classify.py --train_features ${OUT_DIR}/train_seed.feat \
     --train_labels ${OUT_DIR}/train_seed.labels \
-    --test_features ${OUT_DIR}/expanded.feat \    
+    --test_features ${OUT_DIR}/expanded.feat \
     --test_predicted_labels_out ${OUT_DIR}/expanded.predicted \
     --write_posterior_probabilities
     #--golden_labels ${OUT_DIR}/expanded.labels
