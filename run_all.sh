@@ -8,15 +8,14 @@ OUT_DIR=./taxonomies/GermaNet
 
 CREG_BIN=/usr0/home/ytsvetko/tools/creg/dist/bin/creg
 
-VOCAB=data/vectors/huang/vocab.txt
-WORD_VECTORS=data/vectors/huang/wordVectors.txt
+EMBEDDINGS=data/vectors/huang/joined.txt
 BROWN_CLUSTERS=data/brown/en-c600
 
 mkdir -p ${OUT_DIR}
 
 echo "Split Test and Train"
 src/split_train_test.py --seed_file ${LABELS} \
-    --vocab ${VOCAB} \
+    --embeddings ${EMBEDDINGS} \
     --out_train ${OUT_DIR}/train_seed.txt \
     --out_test ${OUT_DIR}/test_seed.txt
 
@@ -30,16 +29,16 @@ src/build_training_sets.py --in_file ${OUT_DIR}/train_seed.txt \
     --test_set ${OUT_DIR}/expanded.txt \
     --out_test_feat ${OUT_DIR}/expanded.feat \
     --out_test_labels ${OUT_DIR}/expanded.labels \
-    --vocab ${VOCAB} --vectors ${WORD_VECTORS} \
+    --embeddings ${EMBEDDINGS} \
     --brown_clusters ${BROWN_CLUSTERS}
 
 echo "Run multi-way classifier. " #Default - Random Forest with 300 trees
 src/classify.py --train_features ${OUT_DIR}/train_seed.feat \
     --train_labels ${OUT_DIR}/train_seed.labels \
-    --test_features ${OUT_DIR}/expanded.feat \
-    --golden_labels ${OUT_DIR}/expanded.labels \
+    --test_features ${OUT_DIR}/expanded.feat \    
     --test_predicted_labels_out ${OUT_DIR}/expanded.predicted \
     --write_posterior_probabilities
+    #--golden_labels ${OUT_DIR}/expanded.labels
     #--num_cross_validation_folds 5 #--priors balanced #--classifier "SVM"
 
 #${CREG_BIN} -x ${OUT_DIR}/train.feat -y ${OUT_DIR}/train.labels --l1 1.0 \
@@ -61,7 +60,7 @@ src/build_training_sets.py --in_file ${OUT_DIR}/expanded_seed.txt \
     --out_feat ${OUT_DIR}/train_seed.feat \
     --out_labels ${OUT_DIR}/train_seed.labels \
     --out_test_feat ${OUT_DIR}/vocab.feat \
-    --vocab ${VOCAB} --vectors ${WORD_VECTORS} \
+    --embeddings ${EMBEDDINGS} \
     --brown_clusters ${BROWN_CLUSTERS} \
     --include_training
 

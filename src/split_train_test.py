@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--seed_file", required=True)
 parser.add_argument("--out_test", required=True)
 parser.add_argument("--out_train", required=True)
-parser.add_argument("--vocab", required=True)
+parser.add_argument("--embeddings", required=True)
 parser.add_argument("--fraction", type=float, default=0.10)
 
 args = parser.parse_args()
@@ -36,7 +36,7 @@ def LoadVocab(filename):
   return result
 
 def main():
-  vocab = LoadVocab(args.vocab)
+  vocab = LoadVocab(args.embeddings)
   seed = LoadSeed(args.seed_file, vocab)
   random.seed(4567)
   out_test = open(args.out_test, "w")

@@ -24,10 +24,10 @@ def IsNounSingleLexName(lemma):
   return len(lex_names) == 1
 
 def LoadHuang():
-  filename = "/home/ytsvetko/projects/supersense_classifier/data/vectors/huang/vocab.txt"
+  filename = "/home/ytsvetko/projects/supersense_classifier/data/vectors/huang/joined.txt"
   result = set()
   for line in open(filename):
-    result.add(line.strip().lower())
+    result.add(line.strip().split()[0].lower())
   return result
 
 def LoadManaal():

@@ -16,20 +16,22 @@ parser.add_argument("--out_labels", required=True)
 parser.add_argument("--test_set")
 parser.add_argument("--out_test_feat")
 parser.add_argument("--out_test_labels")
-parser.add_argument("--vocab")
-parser.add_argument("--vectors")
+parser.add_argument("--embeddings")
 parser.add_argument("--brown_clusters")
 parser.add_argument("--include_training", action='store_true', default=False)
 
 args = parser.parse_args()
 
-def LoadVectors(vocab_filename, vectors_filename):
+def LoadVectors(embeddings_filename):
   feature_vectors = {}
-  for word, features in izip(open(vocab_filename), open(vectors_filename)):
+  for line in open(embeddings_filename):
+    tokens = line.strip().split()
+    word = tokens[0]
+    features = tokens[1:]
     word = word.strip()
     if not word.isalpha():
       continue
-    features_dict = { "V_"+str(ind) : float(str_feat) for ind, str_feat in enumerate(features.split()) }
+    features_dict = { "V_"+str(ind) : float(str_feat) for ind, str_feat in enumerate(features) }
     feature_vectors[word] = features_dict
   return feature_vectors
 
@@ -43,7 +45,7 @@ def LoadBrownClusters(brown_filename, vocab):
     vocab[word].update(feature_dict)
 
 def main(argv):
-  vectors = LoadVectors(args.vocab, args.vectors)
+  vectors = LoadVectors(args.embeddings)
   #LoadBrownClusters(args.brown_clusters, vectors)
 
   out_features = open(args.out_feat, "w")
