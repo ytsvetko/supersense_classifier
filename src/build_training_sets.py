@@ -43,7 +43,7 @@ def LoadBrownClusters(brown_filename, vocab):
 
 def main(argv):
   vectors = LoadVectors(args.vocab, args.vectors)
-  LoadBrownClusters(args.brown_clusters, vectors)
+  #LoadBrownClusters(args.brown_clusters, vectors)
 
   out_features = open(args.out_feat, "w")
   out_labels = open(args.out_labels, "w")
