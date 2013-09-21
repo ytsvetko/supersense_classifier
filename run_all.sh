@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LABELS=data/labeled_taxonomies/germanet/GermaNet_labels.txt
+LABELS=data/labeled_taxonomies/germanet/germanet_labels.txt
 OUT_DIR=./taxonomies/GermaNet
 #LABELS=data/labeled_taxonomies/dixon/dixon_labels.txt
 #OUT_DIR=./taxonomies/Dixon
@@ -8,8 +8,8 @@ OUT_DIR=./taxonomies/GermaNet
 
 CREG_BIN=/usr0/home/ytsvetko/tools/creg/dist/bin/creg
 
-VOCAB=data/vectors/adjectives.vocab
-WORD_VECTORS=data/vectors/adjectives.vectors
+VOCAB=data/vectors/huang/vocab.txt
+WORD_VECTORS=data/vectors/huang/wordVectors.txt
 BROWN_CLUSTERS=data/brown/en-c600
 
 mkdir -p ${OUT_DIR}
@@ -56,7 +56,8 @@ src/build_training_sets.py --in_file ${OUT_DIR}/expanded_seed.txt \
     --out_labels ${OUT_DIR}/train_seed.labels \
     --out_test_feat ${OUT_DIR}/vocab.feat \
     --vocab ${VOCAB} --vectors ${WORD_VECTORS} \
-    --brown_clusters ${BROWN_CLUSTERS}
+    --brown_clusters ${BROWN_CLUSTERS} \
+    --include_training
 
 echo "Run multi-way classifier. " #Default - Random Forest with 300 trees
 src/classify.py --train_features ${OUT_DIR}/train_seed.feat \
@@ -66,6 +67,8 @@ src/classify.py --train_features ${OUT_DIR}/train_seed.feat \
     --write_posterior_probabilities \
     --num_cross_validation_folds 5 #--priors balanced #--classifier "SVM"
 
+src/eval.py --predicted_results ${OUT_DIR}/vocab.predicted \
+    --held_out_seed ${LABELS}
 
 #TODO Active learning
 echo "Update training sets"

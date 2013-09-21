@@ -73,6 +73,10 @@ def main(argv):
   print "manaal.intersect(all_alpha_lemmas)", len(manaal_vocab.intersection(all_alpha_lemmas))
   print "brown.intersect(all_alpha_lemmas)", len(brown_vocab.intersection(all_alpha_lemmas))
   print "huang*manaal*brown*all_alpha_lemmas", len(huang_vocab.intersection(all_alpha_lemmas, manaal_vocab, brown_vocab))
+  print "huang.intersect(all_lemmas_with_single_synset_alpha)", len(huang_vocab.intersection(all_lemmas_with_single_synset_alpha))
+  print "manaal.intersect(all_lemmas_with_single_synset_alpha)", len(manaal_vocab.intersection(all_lemmas_with_single_synset_alpha))
+  print "brown.intersect(all_lemmas_with_single_synset_alpha)", len(brown_vocab.intersection(all_lemmas_with_single_synset_alpha))
+  print "huang*manaal*brown*all_lemmas_with_single_synset_alpha", len(huang_vocab.intersection(all_lemmas_with_single_synset_alpha, manaal_vocab, brown_vocab))
   # print all_alpha_lemmas - huang_vocab.union(manaal_vocab)
 
 if __name__ == '__main__':

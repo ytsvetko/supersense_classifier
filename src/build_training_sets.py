@@ -19,6 +19,7 @@ parser.add_argument("--out_test_labels")
 parser.add_argument("--vocab")
 parser.add_argument("--vectors")
 parser.add_argument("--brown_clusters")
+parser.add_argument("--include_training", action='store_true', default=False)
 
 args = parser.parse_args()
 
@@ -66,7 +67,7 @@ def main(argv):
     test_features_file = open(args.out_test_feat, "w")
     if args.test_set is None:
       for word, features in sorted(vectors.iteritems()):
-        if word in seen_in_training:
+        if not args.include_training and word in seen_in_training:
           continue
         features_str = json.dumps(features, sort_keys=True)
         test_features_file.write("{}_vocab\t{}\n".format(word, features_str))
