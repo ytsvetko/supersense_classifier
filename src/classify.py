@@ -52,14 +52,17 @@ class StrEnumerator(object):
 
 class Classifier(object):
   def __init__(self):
-    if args.classifier == "RandomForest":
-      self.classifier = ensemble.RandomForestClassifier(n_estimators=300)
-    elif args.classifier == "SVM":
-      self.classifier = svm.SVC(kernel='rbf', gamma=0.0001, C=1000000.0)
-    else:
-      assert False, ("Unknown classifier:", args.classifier)
+    self.classifier = self._NewClassifier()
     self.labels_enum = StrEnumerator()
     self.features_enum = StrEnumerator()
+
+  def _NewClassifier(self):
+    if args.classifier == "RandomForest":
+      return ensemble.RandomForestClassifier(n_estimators=300)
+    elif args.classifier == "SVM":
+      return svm.SVC(kernel='rbf', gamma=0.0001, C=1000000.0)
+    else:
+      assert False, ("Unknown classifier:", args.classifier)
 
   def FromSparse(self, Xsparse):
     X = []
@@ -149,6 +152,40 @@ class Classifier(object):
     out_file.write("\n")
 
   def CrossValidate(self, Xsparse, y, num_folds, priors):
+    def GetAccuracy(test_posteriors, test_y):
+      def NormalizedHistogram(hist):
+        normalized = []
+        total = 0
+        for index in xrange(len(self.labels_enum.labels)):
+          total += hist[index]
+          normalized.append(total / len(test_y))
+        return normalized
+
+      hist = Counter()
+      for posteriors, expected in izip_longest(test_posteriors, test_y):
+        sorted_posteriors = sorted(enumerate(posteriors), key=lambda x: x[1], reverse=True)
+        sorted_labels = [k for k,v in sorted_posteriors]
+        try:
+          hist[sorted_labels.index(expected)] += 1
+        except ValueError:
+          pass  # Did not see this label in training.
+      normalized_hist = NormalizedHistogram(hist)
+      print normalized_hist
+      accuracy = normalized_hist[0]
+      return accuracy
+
+    accuracy = []
+    X = np.array(self.FromSparse(Xsparse))
+    for train, test in cross_validation.StratifiedKFold(y, num_folds):
+      X_train, X_test, y_train, y_test = X[train], X[test], y[train], y[test]
+      label_weights = np.array([priors.get(self.labels_enum.NumToStr(l), 1.0) for l in y_train])
+      classifier = self._NewClassifier()
+      classifier.fit(X_train, y_train, label_weights)
+      posteriors = classifier.predict_proba(X_test)
+      accuracy.append(GetAccuracy(posteriors, y_test))
+    return np.array(accuracy)
+
+  def LibraryCrossValidate(self, Xsparse, y, num_folds, priors):
     # TODO: Support priors.
     X = self.FromSparse(Xsparse)
     return cross_validation.cross_val_score(self.classifier, X, y, cv=num_folds)
@@ -190,8 +227,12 @@ def main():
 
   print("Training")
   if args.num_cross_validation_folds > 0:
+    scores = classifier.LibraryCrossValidate(X, np.array(y), args.num_cross_validation_folds, priors)
+    print("LibCV Accuracy: {:0.2} (+/- {:0.2}) [{}..{}]".format(
+        scores.mean(), scores.std() * 2, scores.min(), scores.max()))
+
     scores = classifier.CrossValidate(X, np.array(y), args.num_cross_validation_folds, priors)
-    print("CV Accuracy: {:0.2} (+/- {:0.2}) [{}..{}]".format(
+    print("OurCV Accuracy: {:0.2} (+/- {:0.2}) [{}..{}]".format(
         scores.mean(), scores.std() * 2, scores.min(), scores.max()))
 
   if args.test_features is None:

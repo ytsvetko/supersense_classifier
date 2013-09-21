@@ -111,9 +111,11 @@ def LoadAndExpandSeed(filename, expand):
   for line in open(filename):
     if line.strip() == "" : 
       continue
-    if len(line.strip().lower().split()) != 2:
-      print line
-    word, label = line.strip().lower().split()
+    tokens = line.strip().lower().split()
+    if len(tokens) == 3:
+      word, label, relation = tokens
+    else:
+      word, label = tokens
     word_dict[word].append((label, "seed"))
     if expand:
       for related, relation in FindRelated(word):

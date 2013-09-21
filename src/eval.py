@@ -1,5 +1,6 @@
 #!/usr/bin/env python2.7
 
+from __future__ import division
 import sys
 import json
 import argparse
@@ -15,7 +16,16 @@ parser.add_argument("--out_file", default=None)
 args = parser.parse_args()
 
 def CollectResults(predicted_results, seed, out_file):
+  def NormalizedHistogram(hist, sum_of_all):
+    normalized = []
+    total = 0
+    for index in xrange(max(hist)+1):
+      total += hist[index]
+      normalized.append(total / sum_of_all)
+    return normalized
+
   hist = collections.Counter()
+  total_count = 0
   for line in open(predicted_results):
     instance, label, posteriors_str = line.strip().split("\t")
     posteriors = json.loads(posteriors_str)
@@ -28,7 +38,10 @@ def CollectResults(predicted_results, seed, out_file):
       for label in seed[word]:
         min_pos = min(min_pos, sorted_labels.index(label))
       hist[min_pos] += 1
-  print hist
+      total_count += 1
+  normalized_hist = NormalizedHistogram(hist, total_count)
+  out_file.write(repr(normalized_hist))
+  out_file.write("\n")
 
 def LoadSeed(seed_filename):
   result = collections.defaultdict(set)
@@ -36,7 +49,11 @@ def LoadSeed(seed_filename):
     line = line.strip()
     if len(line) == 0:
       continue
-    word, label = line.split("\t")
+    tokens = line.split("\t")
+    if len(tokens) == 2:
+      word, label = tokens
+    else:
+      word, label, rel = tokens
     result[word.lower()].add(label.lower())
   return result
 

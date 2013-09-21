@@ -14,11 +14,17 @@ BROWN_CLUSTERS=data/brown/en-c600
 
 mkdir -p ${OUT_DIR}
 
+echo "Split Test and Train"
+src/split_train_test.py --seed_file ${LABELS} \
+    --vocab ${VOCAB} \
+    --out_train ${OUT_DIR}/train_seed.txt \
+    --out_test ${OUT_DIR}/test_seed.txt
+
 echo "Expand by WN synonyms and antonyms"
-src/expand_labeled_data.py --labeled_data ${LABELS} \
+src/expand_labeled_data.py --labeled_data ${OUT_DIR}/train_seed.txt \
     --out_file ${OUT_DIR}/expanded.txt --expand 
 
-src/build_training_sets.py --in_file ${LABELS} \
+src/build_training_sets.py --in_file ${OUT_DIR}/train_seed.txt \
     --out_feat ${OUT_DIR}/train_seed.feat \
     --out_labels ${OUT_DIR}/train_seed.labels \
     --test_set ${OUT_DIR}/expanded.txt \
@@ -33,8 +39,8 @@ src/classify.py --train_features ${OUT_DIR}/train_seed.feat \
     --test_features ${OUT_DIR}/expanded.feat \
     --golden_labels ${OUT_DIR}/expanded.labels \
     --test_predicted_labels_out ${OUT_DIR}/expanded.predicted \
-    --write_posterior_probabilities \
-    --num_cross_validation_folds 5 #--priors balanced #--classifier "SVM"
+    --write_posterior_probabilities
+    #--num_cross_validation_folds 5 #--priors balanced #--classifier "SVM"
 
 #${CREG_BIN} -x ${OUT_DIR}/train.feat -y ${OUT_DIR}/train.labels --l1 1.0 \
 #     --tx ${OUT_DIR}/test.feat -D -W > ${OUT_DIR}/test.predicted.creg
@@ -44,7 +50,7 @@ src/classify.py --train_features ${OUT_DIR}/train_seed.feat \
 
 echo "Selecting best expanded words"
 src/filter_expanded.py --predictions ${OUT_DIR}/expanded.predicted \
-    --orig_seed ${LABELS} \
+    --orig_seed ${OUT_DIR}/train_seed.txt \
     --out_file ${OUT_DIR}/expanded_seed.txt
 
 echo "Expand by WN synonyms and antonyms"
@@ -64,11 +70,9 @@ src/classify.py --train_features ${OUT_DIR}/train_seed.feat \
     --train_labels ${OUT_DIR}/train_seed.labels \
     --test_features ${OUT_DIR}/vocab.feat \
     --test_predicted_labels_out ${OUT_DIR}/vocab.predicted \
-    --write_posterior_probabilities \
-    --num_cross_validation_folds 5 #--priors balanced #--classifier "SVM"
+    --write_posterior_probabilities
+    #--num_cross_validation_folds 5 #--priors balanced #--classifier "SVM"
 
 src/eval.py --predicted_results ${OUT_DIR}/vocab.predicted \
-    --held_out_seed ${LABELS}
+    --held_out_seed ${OUT_DIR}/test_seed.txt
 
-#TODO Active learning
-echo "Update training sets"
